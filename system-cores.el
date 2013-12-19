@@ -3,7 +3,7 @@
 ;; Copyright (C) 2013 Aaron Miller. All rights reversed.
 ;; Share and Enjoy!
 
-;; Last revision: Wednesday, December 18, 2013, ca. 19:30.
+;; Last revision: Thursday, December 19, 2013, ca. 10:30.
 
 ;; Author: Aaron Miller <me@aaron-miller.me>
 
@@ -212,7 +212,7 @@ shown in the echo area.
   This function is a `system-cores' delegate."
   (let ((cpuinfo
          (map 'list #'(lambda (line) (split-string line "\\s-*\:\\s-*"))
-              (split-string (shell-command-to-string "cat /proc/cpuinfo") "\n")))
+              (process-lines "cat" "/proc/cpuinfo")))
         processors cores)
     (setq cores
           (reduce '+
@@ -252,10 +252,9 @@ obtained from the value listed for the key
               #'(lambda (s) (split-string s "="))
               (remove-if
                #'(lambda (s) (string= s ""))
-               (split-string 
-                (shell-command-to-string
-                 "wmic cpu get NumberOfCores,NumberOfLogicalProcessors /format:List") 
-                "\r\n")))))
+               (process-lines
+                "wmic" "cpu" "get" "NumberOfCores,NumberOfLogicalProcessors"
+                "/format:List")))))
     `((logical .
                ,(string-to-number (cadr (assoc "NumberOfCores" cpuinfo))))
       (physical .
@@ -279,8 +278,8 @@ Processors\".
                          (map 'list #'(lambda (s)
                                         (when (string-match "^ +" s)
                                           (replace-match "" t t s)))
-                              (split-string (shell-command-to-string "system_profiler SPHardwareDataType")
-                                            "\n"))))))
+                              (process-lines "system_profiler"
+                                             "SPHardwareDataType"))))))
     `((logical .
                ,(string-to-number (cadr (assoc "Total Number of Cores" cpuinfo))))
       (physical .
@@ -304,12 +303,11 @@ system's sysctl output and modify this function accordingly!]
   (let ((cpuinfo
          (map 'list
               #'(lambda (s) (split-string s ": " t))
-              (split-string
-               (shell-command-to-string "sysctl hw.physicalcpu hw.logicalcpu") "\n" t))))
-    `((logical .
-               ,(string-to-number (cadr (assoc "hw.physicalcpu" cpuinfo))))
-      (physical .
-                ,(string-to-number (cadr (assoc "hw.logicalcpu" cpuinfo)))))))
+              (process-lines "sysctl" "hw.physicalcpu" "hw.logicalcpu"))))
+  `((logical .
+             ,(string-to-number (cadr (assoc "hw.physicalcpu" cpuinfo))))
+    (physical .
+              ,(string-to-number (cadr (assoc "hw.logicalcpu" cpuinfo)))))))
 
 (provide 'system-cores)
 

@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 
-;; Someone on Stack Overflow [1] asked whether there was a
+;; Someone on Stack Overflow asked [1] whether there was a
 ;; platform-independent method of finding out how many processors a
 ;; given machine has. It turns out there's not, so I wrote one.
 
@@ -49,7 +49,7 @@
 ;; information. See that function's documentation for additional
 ;; details on its invocation and behavior.
 
-;;; Bugs/TODO;
+;;; Bugs/TODO:
 
 ;; I don't have access to a true BSD system, but only one running
 ;; Darwin, which is similar but not quite the same. I've therefore
@@ -70,8 +70,8 @@
 ;; result in a fork hosted somewhere else. I'd be obliged if you'd
 ;; drop me a line to let me know about it.
 
-;; [1] http://stackoverflow.com/q/20666556/1713079
-;; [2] https://github.com/aaron-em/system-cores.el
+;; [1]: http://stackoverflow.com/q/20666556/1713079
+;; [2]: https://github.com/aaron-em/system-cores.el
 
 (put 'system-cores-delegate-error
      'error-conditions '(error system-cores-delegate-error))

@@ -83,7 +83,7 @@
     (cygwin         . system-cores-cpuinfo)
     (windows-nt     . system-cores-wmic)
     (darwin         . system-cores-profiler)
-    (berkeley-linux . system-cores-sysctl))
+    (berkeley-unix  . system-cores-sysctl))
   "An alist whose cars are `system-type' values, and whose cdrs
 are the corresponding function to call in order to find out how
 many processors and cores a system of that type has

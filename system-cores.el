@@ -51,6 +51,11 @@
 
 ;;; Bugs/TODO:
 
+;; No doubt you don't need telling that the information reported by
+;; `system-cores' is only as accurate as the information your platform
+;; makes available. In case you do need telling, though, you've been
+;; told.
+
 ;; I don't have access to a true BSD system, but only one running
 ;; Darwin, which is similar but not quite the same. I've therefore
 ;; been unable to properly test the BSD delegate
@@ -195,7 +200,14 @@ physical processors, listed in /proc/cpuinfo.
   The logical core count is obtained by counting the number of
 lines in cpuinfo which begin with the key \"processor\"; the
 count of physical cores is obtained by counting unique values
-found in lines beginning with the key \"core id\".
+found in lines beginning with either \"core id\" or
+\"physical id\".
+
+  In at least cases where only one non-hyperthreading processor
+is installed, no \"core id\" or \"physical id\" member is present
+in the file. In this case, the count of logical processors is
+also provided as the count of logical cores, and a message is
+shown in the echo area.
 
   This function is a `system-cores' delegate."
   (let ((cpuinfo
@@ -212,10 +224,15 @@ found in lines beginning with the key \"core id\".
                    (remove-if 'null
                               (map 'list
                                    #'(lambda (a)
-                                       (if (string= "core id" (car a))
+                                       (if (or (string= "core id" (car a))
+                                               (string= "physical id" (car a)))
                                            (cadr a)
                                          nil))
                                    cpuinfo)))))
+    (if (= 0 processors)
+        (progn
+          (message "system-cores-cpuinfo: Found no physical processor IDs; using logical core count")
+          (setq processors cores)))
     `((logical  . ,cores)
       (physical . ,processors))))
 

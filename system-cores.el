@@ -80,8 +80,8 @@
 
 (defvar system-cores-delegate-alist
   '((gnu/linux      . system-cores-cpuinfo)
-    (cygwin         . system-cores-cpuinfo)
     (windows-nt     . system-cores-wmic)
+    (cygwin         . system-cores-wmic)
     (darwin         . system-cores-profiler)
     (berkeley-unix  . system-cores-sysctl))
   "An alist whose cars are `system-type' values, and whose cdrs
@@ -92,8 +92,8 @@ delegate function to invoke for a given architecture.
 
   Delegates are expected to return an alist of the form:
 
-  '((cores . #)
-    (processors . #))
+  '((logical  . #)
+    (physical . #))
 
 where '#' represents a number greater than zero. A condition will
 be signaled if a delegate returns a value not satisfying this
@@ -104,7 +104,7 @@ requirement.
   `system-cores-cpuinfo'
 
   Obtain processor and core information from /proc/cpuinfo,
-typically found on Linux and its relatives (including Cygwin).
+typically found on Linux and its relatives.
 
   `system-cores-wmic'
 
@@ -112,6 +112,11 @@ typically found on Linux and its relatives (including Cygwin).
 the command-line Windows Management Instrumentation query tool,
 found on systems of Windows NT derivation (Windows NT, Windows
 2000, and all later versions).
+
+  The WMIC delegate is also used when Emacs is running under
+Cygwin; while Cygwin does have /proc/cpuinfo, its \"core id\"
+member is absent, making it impossible to obtain the physical
+processor count from that file.
 
   `system-cores-profiler'
 
@@ -138,8 +143,8 @@ latter may reasonably be expected, on an Apple system, to be
 more accurate than the former, it is preferred by default on
 that architecture.)")
 
-(defun* system-cores (&key (cores nil cores-p)
-                           (processors nil processors-p))
+(defun* system-cores (&key (logical  nil log-p)
+                           (physical nil phy-p))
   "Return the number of processor cores, and the number of
 physical processors, installed on the machine where Emacs is
 running.
@@ -147,11 +152,11 @@ running.
   Called without arguments, this function returns an alist of the
 form:
 
-  '((cores . #)
-    (processors . #))
+  '((logical  . #)
+    (physical . #))
 
 where '#' represents a number greater than zero. Called with one
-of the keywords :CORES and :PROCESSORS, the function returns the
+of the keywords :LOGICAL and :PHYSICAL, the function returns the
 corresponding number. (Called with both keywords, the function
 signals a WRONG-NUMBER-OF-ARGUMENTS condition.)
 
@@ -161,7 +166,7 @@ basis of the system architecture where you are running as
 identified by the value of `system-type'. For details on what
 delegates are available, and which system types are supported,
 see the documentation for `system-cores-delegate-alist'."
-  (if (and cores-p processors-p)
+  (if (and log-p phy-p)
       (signal 'wrong-number-of-arguments '(system-cores 2)))
   (let ((delegate (cdr (assoc system-type system-cores-delegate-alist)))
         (result nil))
@@ -169,25 +174,25 @@ see the documentation for `system-cores-delegate-alist'."
       (signal 'system-cores-delegate-error
               (concat "No `system-cores' delegate available for a "
                       (symbol-name system-type) " system")))
-    (if (or (equal (cdr (assoc 'cores result)) 0)
-            (equal (cdr (assoc 'processors result)) 0))
+    (if (or (equal (cdr (assoc 'logical  result)) 0)
+            (equal (cdr (assoc 'physical result)) 0))
         (signal 'system-cores-delegate-error
                 (concat "`" (symbol-name delegate) "'"
                         " failed to return valid information: "
                         (prin1-to-string result)))
       (cond
-       (cores-p
-        (cdr (assoc 'cores result)))
-       (processors-p
-        (cdr (assoc 'processors result)))
+       (log-p
+        (cdr (assoc 'logical  result)))
+       (phy-p
+        (cdr (assoc 'physical result)))
        (t
         result)))))
 
 (defun system-cores-cpuinfo ()
-  "Return the number of processor cores, and the number of
+  "Return the number of logical cores, and the number of
 physical processors, listed in /proc/cpuinfo.
 
-  The processor core count is obtained by counting the number of
+  The logical core count is obtained by counting the number of
 lines in cpuinfo which begin with the key \"processor\"; the
 count of physical cores is obtained by counting unique values
 found in lines beginning with the key \"core id\".
@@ -211,15 +216,15 @@ found in lines beginning with the key \"core id\".
                                            (cadr a)
                                          nil))
                                    cpuinfo)))))
-    `((cores . ,cores)
-      (processors . ,processors))))
+    `((logical  . ,cores)
+      (physical . ,processors))))
 
 (defun system-cores-wmic ()
-  "Return the number of processor cores, and the number of
+  "Return the number of logical cores, and the number of
 physical processors, listed in the output of a Windows Management
 Instrumentation query.
 
-  The processor core count is obtained from the value listed for
+  The logical core count is obtained from the value listed for
 the key \"NumberOfCores\"; the count of physical cores is
 obtained from the value listed for the key
 \"NumberOfLogicalProcessors\".
@@ -234,17 +239,17 @@ obtained from the value listed for the key
                 (shell-command-to-string
                  "wmic cpu get NumberOfCores,NumberOfLogicalProcessors /format:List") 
                 "\r\n")))))
-    `((cores .
-             ,(string-to-number (cadr (assoc "NumberOfCores" cpuinfo))))
-      (processors .
-                  ,(string-to-number (cadr (assoc "NumberOfLogicalProcessors" cpuinfo)))))))
+    `((logical .
+               ,(string-to-number (cadr (assoc "NumberOfCores" cpuinfo))))
+      (physical .
+                ,(string-to-number (cadr (assoc "NumberOfLogicalProcessors" cpuinfo)))))))
 
 (defun system-cores-profiler ()
-  "Return the number of processor cores, and the number of
+  "Return the number of logical cores, and the number of
 physical processors, listed in the output of the Apple System
 Profiler.
 
-  The processor core count is obtained from the value listed for
+  The logical core count is obtained from the value listed for
 the key \"Total Number of Cores\"; the count of physical cores is
 obtained from the value listed for the key \"Number of
 Processors\".
@@ -259,16 +264,16 @@ Processors\".
                                           (replace-match "" t t s)))
                               (split-string (shell-command-to-string "system_profiler SPHardwareDataType")
                                             "\n"))))))
-    `((cores .
-             ,(string-to-number (cadr (assoc "Total Number of Cores" cpuinfo))))
-      (processors .
-                  ,(string-to-number (cadr (assoc "Number of Processors" cpuinfo)))))))
+    `((logical .
+               ,(string-to-number (cadr (assoc "Total Number of Cores" cpuinfo))))
+      (physical .
+                ,(string-to-number (cadr (assoc "Number of Processors" cpuinfo)))))))
 
 (defun system-cores-sysctl ()
-  "Return the number of processor cores, and the number of
+  "Return the number of logical cores, and the number of
 physical processors, listed in the output of the sysctl command.
 
-  The processor core count is obtained from the value listed for
+  The logical core count is obtained from the value listed for
 the key \"hw.logicalcpu\"; the count of physical cores is
 obtained from the value listed for the key \"hw.physicalcpu\".
 
@@ -284,10 +289,10 @@ system's sysctl output and modify this function accordingly!]
               #'(lambda (s) (split-string s ": " t))
               (split-string
                (shell-command-to-string "sysctl hw.physicalcpu hw.logicalcpu") "\n" t))))
-    `((cores .
-             ,(string-to-number (cadr (assoc "hw.physicalcpu" cpuinfo))))
-      (processors .
-                  ,(string-to-number (cadr (assoc "hw.logicalcpu" cpuinfo)))))))
+    `((logical .
+               ,(string-to-number (cadr (assoc "hw.physicalcpu" cpuinfo))))
+      (physical .
+                ,(string-to-number (cadr (assoc "hw.logicalcpu" cpuinfo)))))))
 
 (provide 'system-cores)
 

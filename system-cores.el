@@ -187,6 +187,11 @@ see the documentation for `system-cores-delegate-alist'."
   "Return the number of processor cores, and the number of
 physical processors, listed in /proc/cpuinfo.
 
+  The processor core count is obtained by counting the number of
+lines in cpuinfo which begin with the key \"processor\"; the
+count of physical cores is obtained by counting unique values
+found in lines beginning with the key \"core id\".
+
   This function is a `system-cores' delegate."
   (let ((cpuinfo
          (map 'list #'(lambda (line) (split-string line "\\s-*\:\\s-*"))
@@ -214,6 +219,11 @@ physical processors, listed in /proc/cpuinfo.
 physical processors, listed in the output of a Windows Management
 Instrumentation query.
 
+  The processor core count is obtained from the value listed for
+the key \"NumberOfCores\"; the count of physical cores is
+obtained from the value listed for the key
+\"NumberOfLogicalProcessors\".
+
   This function is a `system-cores' delegate."
   (let ((cpuinfo 
          (map 'list
@@ -234,6 +244,11 @@ Instrumentation query.
 physical processors, listed in the output of the Apple System
 Profiler.
 
+  The processor core count is obtained from the value listed for
+the key \"Total Number of Cores\"; the count of physical cores is
+obtained from the value listed for the key \"Number of
+Processors\".
+
   This function is a `system-cores' delegate."
   (let ((cpuinfo
          (map 'list
@@ -252,6 +267,16 @@ Profiler.
 (defun system-cores-sysctl ()
   "Return the number of processor cores, and the number of
 physical processors, listed in the output of the sysctl command.
+
+  The processor core count is obtained from the value listed for
+the key \"hw.logicalcpu\"; the count of physical cores is
+obtained from the value listed for the key \"hw.physicalcpu\".
+
+  [Note well! This delegate has been tested on a Darwin system,
+but not on a BSD system, and it is consequently uncertain whether
+the information it returns will be correct and complete for any
+BSD derivative. You are strongly recommended to investigate your
+system's sysctl output and modify this function accordingly!]
 
   This function is a `system-cores' delegate."
   (let ((cpuinfo

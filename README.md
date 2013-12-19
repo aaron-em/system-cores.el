@@ -53,6 +53,13 @@ To use this code, drop this file into your Emacs load path, then
 information. See that function's documentation for additional
 details on its invocation and behavior.
 
+This library relies heavily on the 'process-lines' function. If
+that function can't do anything sensible in the context where you
+need to call 'system-cores', then 'system-cores' can't either. For
+example, if you're on Darwin and (getenv "PATH") doesn't contain
+/usr/sbin, 'process-lines' will bomb out with "Searching for
+program: no such file or directory, system_profiler".
+
 Bugs/TODO
 ---------
 

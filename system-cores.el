@@ -316,9 +316,9 @@ system's sysctl output and modify this function accordingly!]
               #'(lambda (s) (split-string s ": " t))
               (process-lines "sysctl" "hw.physicalcpu" "hw.logicalcpu"))))
   `((logical .
-             ,(string-to-number (cadr (assoc "hw.physicalcpu" cpuinfo))))
+             ,(string-to-number (cadr (assoc "hw.logicalcpu" cpuinfo))))
     (physical .
-              ,(string-to-number (cadr (assoc "hw.logicalcpu" cpuinfo)))))))
+              ,(string-to-number (cadr (assoc "hw.physicalcpu" cpuinfo)))))))
 
 (provide 'system-cores)
 

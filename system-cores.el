@@ -273,8 +273,9 @@ physical processors, listed in the output of the Apple System
 Profiler.
 
   The logical core count is obtained from the value listed for
-the key \"Total Number of Cores\"; the count of physical cores is
-obtained from the value listed for the key \"Number of
+the key \"Total Number of Cores\" and will be doubled if
+\"Hyper-Threading Technology: Enabled\"; the count of physical
+cores is obtained from the value listed for the key \"Number of
 Processors\".
 
   This function is a `system-cores' delegate."
@@ -288,7 +289,10 @@ Processors\".
                               (process-lines "system_profiler"
                                              "SPHardwareDataType"))))))
     `((logical .
-               ,(string-to-number (cadr (assoc "Total Number of Cores" cpuinfo))))
+               ,(let ((ht (string-equal "Enabled"
+                                        (car (last (assoc "Hyper-Threading Technology" cpuinfo))))))
+                  (* (if ht 2 1)
+                     (string-to-number (cadr (assoc "Total Number of Cores" cpuinfo))))))
       (physical .
                 ,(string-to-number (cadr (assoc "Number of Processors" cpuinfo)))))))
 

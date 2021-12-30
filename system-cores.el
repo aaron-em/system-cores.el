@@ -294,7 +294,9 @@ Processors\".
                   (* (if ht 2 1)
                      (string-to-number (cadr (assoc "Total Number of Cores" cpuinfo))))))
       (physical .
-                ,(string-to-number (cadr (assoc "Number of Processors" cpuinfo)))))))
+                ,(cond ((cadr (assoc "Number of Processors" cpuinfo))
+                        (string-to-number (cadr (assoc "Number of Processors" cpuinfo))))
+                       (t (string-to-number (cadr (assoc "Total Number of Cores" cpuinfo)))))))))    
 
 (defun system-cores-sysctl ()
   "Return the number of logical cores, and the number of
